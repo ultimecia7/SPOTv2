@@ -17,9 +17,14 @@ hf = figure('Color', get(0, 'defaultuicontrolbackgroundcolor'), ...
 imshow(img);
 release(reader);
 
+if ~ismatrix(img)
+    img = rgb2gray(img);
+end
+
 reader = vision.VideoFileReader(movie_name,...
     'VideoOutputDataType','uint8',...
     'ImageColorSpace','Intensity');
+
 img = step(reader);
 release(reader);
 
@@ -36,6 +41,7 @@ if useDefaultTarget
     close(hf);
     return;
 else
+    %Use Blob Analysis to find the object
     
     h = imrect(gca, roi);
     api = iptgetapi(h);

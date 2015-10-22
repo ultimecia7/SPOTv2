@@ -29,12 +29,24 @@ for i=1:nFrames
        [locat] = ...
            videopatternmatching(img, movie_name, rgbImage);
        
+       %Choose random part inside an object
+%        locat1 = locat{1};
+%        inside_locat = cell(1,4);
+%        inside_locat{1} = [locat1(1,1) locat1(1,2) locat1(1,3)/4 locat1(1,4)/4];
+%        inside_locat{2} = [locat1(1,1)+0.75*locat1(1,3) locat1(1,2) locat1(1,3)/4 locat1(1,4)/4];
+%        inside_locat{3} = [locat1(1,1) locat1(1,2)+0.75*locat1(1,4) locat1(1,3)/4 locat1(1,4)/4];
+%        inside_locat{4} = [locat1(1,1)+0.75*locat1(1,3) locat1(1,2)+0.75*locat1(1,4) locat1(1,3)/4 locat1(1,4)/4];
+%        
+%        locat = inside_locat;
+
+       
        % Read ground truth location for first frame
         npart = length(locat);
         bb=cell(1,npart);
         bbcenter=cell(1,npart);
         bbout=cell(1,npart);
         location=cell(1,npart);
+        results=cell(1,npart);
         pos=cell(1,npart);
         neg=cell(1,npart);
         w=cell(1,npart);
@@ -54,6 +66,7 @@ for i=1:nFrames
             bbcenter{j}=round(0.5*([bb{j}(2)+bb{j}(4) bb{j}(1)+bb{j}(3)]));
             
             % Get first positive example
+            bb{j} = round(bb{j});
             location{j}(1,:) = bb{j}; 
             patch = img(bb{j}(2)-4:bb{j}(4)+4, bb{j}(1)-4:bb{j}(3)+4);
             feat = features_gray(patch, sbin);
@@ -146,6 +159,7 @@ for i=1:nFrames
            end
         end
         location{j}(i,:) = bbout{j};
+%         results{j}(i,:) = bbshow{j};
     end
     if ispc
         drawnow;
@@ -154,4 +168,10 @@ for i=1:nFrames
     
     %toc;
 end
+
+% for i = 1:npart
+%     filename = strcat('result', int2str(i), '.mat');
+%     loc = results{i};
+%     save(filename, 'loc');
+% end
 end
