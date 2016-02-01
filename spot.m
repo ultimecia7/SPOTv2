@@ -6,10 +6,69 @@ filetype=1; %#ok<*NASGU>
 % Get list of images and movie properties
 Obj =  VideoReader(movie_name);
 nFrames = Obj.NumberOfFrames;
-
+firstFrame = read(Obj,1);
 % Some parameters for the experiment
 sbin = 8;       % size of HOG block
 num = 10;        % number of frames for which we always add positive sample
+
+%Detect Motion field using Optical Flow
+                         
+optical = vision.OpticalFlow( ...
+    'OutputValue', 'Horizontal and vertical components in complex form');
+shapes = vision.ShapeInserter;
+shapes.Shape = 'Lines';
+shapes.BorderColor = 'white';
+%Get Video Frame width&height
+[m,n,rgbField]=size(firstFrame);
+r = 1:5:m;
+c = 1:5:n;
+[Y, X] = meshgrid(c,r);
+preprocessFrames=10;
+hVideoIn = vision.VideoPlayer;
+hVideoIn.Name  = 'Original Video';
+hVideoOut = vision.VideoPlayer;
+hVideoOut.Name  = 'Motion Detected Video';
+
+% Set up for stream
+frameCount = 0;
+vr = vision.VideoFileReader(movie_name);
+motionFieldImg=firstFrame;
+while (frameCount<preprocessFrames)     % Process for the first 100 frames.
+    % Acquire single frame from imaging device.
+    rgbData = step(vr);
+
+    % Compute the optical flow for that particular frame.
+    optFlow = step(optical,rgb2gray(rgbData));
+
+    % Downsample optical flow field.
+    optFlow_DS = optFlow(r,c);
+    H = imag(optFlow_DS)*50;
+    V = real(optFlow_DS)*50;
+
+    % Draw lines on top of image
+    lines = [Y(:)'; X(:)'; Y(:)'+V(:)'; X(:)'+H(:)'];
+    rgb_Out = step(shapes, rgbData,  lines');
+    grimg=rgb2gray(rgb_Out);
+    [rows, cols]=find(abs(grimg-1.0) < 0.001);
+    for i=1:size(rows)
+        grimg(rows(i),cols(i))=0;
+    end
+    % Send image data to video player
+    % Display original video.
+    step(hVideoIn, rgbData);
+    % Display video along with motion vectors.
+    step(hVideoOut, rgb_Out);
+
+    % Increment frame count
+    frameCount = frameCount + 1;
+end
+
+release(hVideoIn);
+release(hVideoOut);
+    
+figure,imshow(rgb2gray(motionFieldImg)),title('Motion Field');                  
+displayEndOfDemoMessage(mfilename)
+
 
 for i=1:nFrames
     tic    
@@ -24,10 +83,20 @@ for i=1:nFrames
          
     % Set up some parameters for the first time
     if i == 1
+         
+       %Threshold
+       %[Ibw, thres] = autoThreshold(img);
+       %imshow(Ibw);
         
+       %Region Growth
+       J = regionGrow(cannyEdge,img);
+       figure, imshow(J),title('Image After')
+       
+       
        %Video Pattern Matching
        [locat] = ...
            videopatternmatching(img, movie_name, rgbImage);
+       
        
        %Choose random part inside an object
 %        locat1 = locat{1};
