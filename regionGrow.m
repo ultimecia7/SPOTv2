@@ -1,4 +1,4 @@
-function J = regionGrow( I, motionFieldImg)
+function J = regionGrow( I, rgbData, motion)
 %REGIONGROW Summary of this function goes here
 %   Detailed explanation goes here
 % Region grow, a root point is needed for growth
@@ -9,7 +9,7 @@ function J = regionGrow( I, motionFieldImg)
 if isinteger(I)
     I = im2double(I);
 end
-figure,imshow(I),title('Original Image')
+figure,imshow(rgbData),title('Original Image')
 [M,N]=size(I);
 [y,x]=getpts;
 x1=round(x);
@@ -22,8 +22,6 @@ suit=1;
 count=1;
 threshold=0.15;
 
-cannyEdge = edge(I, 'canny');
-figure, imshow(cannyEdge), title('Canny Edge');
 while count>0
     s=0;
     count=0;
@@ -34,8 +32,8 @@ while count>0
                     for u= -1:1
                         for v= -1:1
                             if J(i+u,j+v)==0 & abs(I(i+u,j+v)-seed)<=threshold ...
-                                    & 1/(1+1/15*abs(I(i+u,j+v)-seed))>0.8 
-                                    
+                                    & 1/(1+1/15*abs(I(i+u,j+v)-seed))>0.8...
+                                    & (motion(i+u,j+v,1) ~=255 & motion(i+u, j+v, 2)~=255 & motion(i+u, j+v, 3)~=255)
                                 J(i+u,j+v)=1;
                                 count=count+1;
                                 s=s+I(i+u,j+v);

@@ -32,10 +32,19 @@ hVideoOut.Name  = 'Motion Detected Video';
 % Set up for stream
 frameCount = 0;
 vr = vision.VideoFileReader(movie_name);
-motionFieldImg=firstFrame;
+roi = []; % left up right down
+nroi=0;
 while (frameCount<preprocessFrames)     % Process for the first 100 frames.
     % Acquire single frame from imaging device.
     rgbData = step(vr);
+    
+    if(frameCount==0)
+        %Get seed
+        imshow(rgbData);
+        [x,y]=getpts;
+        x1=round(x);
+        y1=round(y);
+    end
 
     % Compute the optical flow for that particular frame.
     optFlow = step(optical,rgb2gray(rgbData));
@@ -48,11 +57,61 @@ while (frameCount<preprocessFrames)     % Process for the first 100 frames.
     % Draw lines on top of image
     lines = [Y(:)'; X(:)'; Y(:)'+V(:)'; X(:)'+H(:)'];
     rgb_Out = step(shapes, rgbData,  lines');
-    grimg=rgb2gray(rgb_Out);
-    [rows, cols]=find(abs(grimg-1.0) < 0.001);
-    for i=1:size(rows)
-        grimg(rows(i),cols(i))=0;
+     se = strel('square',15);
+     motion = imdilate(rgb_Out,se);
+    motion=rgb_Out;
+    cannyEdge=edge(rgb2gray(rgbData),'canny');
+    motion=rgb2gray(motion);
+    if(frameCount>=0) 
+        imshow(motion);
+        xLeft=x1;
+        while xLeft>0
+            if cannyEdge(y1,xLeft)==1 && abs(motion(y1,xLeft)-1.000)<0.0001
+                break;
+            end
+            xLeft=xLeft-1;
+        end
+        yUp=y1;
+        while yUp>0
+            if cannyEdge(yUp,x1)==1 && abs(motion(yUp,x1)-1.000)<0.0001
+                break;
+            end
+            yUp=yUp-1;
+        end
+        xRight=x1;
+        while xRight<n
+            if cannyEdge(y1,xRight)==1 && abs(motion(y1,xRight)-1.000)<0.0001
+                break;
+            end
+            xRight=xRight+1;
+        end
+        yDown=y1;
+        while yDown<m
+            if cannyEdge(yDown,x1)==1 && abs(motion(yDown,x1)-1.000)<0.0001
+                break;
+            end
+            yDown=yDown+1;
+        end
+        if xLeft==0&&xRight==n || yUp==0&&yDown==m
+            continue;
+        else
+            if xLeft==0
+                xLeft = x1-(xRight-x1);
+            end
+            if yUp==0
+                yUp = y1-(yDown-y1);
+            end
+            if xRight==n
+                xRight=x1+(x1-xLeft);
+            end
+            if yDown==m
+                yDown=y1+y1-yUp;
+            end
+        end
+        nroi=nroi+1;
+        roi{nroi}=[xLeft,yUp,xRight-xLeft,yDown-yUp];
     end
+
     % Send image data to video player
     % Display original video.
     step(hVideoIn, rgbData);
@@ -61,12 +120,25 @@ while (frameCount<preprocessFrames)     % Process for the first 100 frames.
 
     % Increment frame count
     frameCount = frameCount + 1;
+    
+     imshow(motion),title('Motion Frame');
+     hold on
+     rectangle('Position', roi{nroi},...
+                   'EdgeColor','r', 'LineWidth', 3)
 end
+sum=[0,0,0,0];
+for i=1:nroi
+    sum=sum+roi{i};
+end;
+avg = sum/nroi;
+imshow(firstFrame);
+hold on
+rectangle('Position', [x1-avg(3)/2, y1-avg(4)/2, avg(3), avg(4)],...
+                  'EdgeColor','r', 'LineWidth', 3)
 
 release(hVideoIn);
 release(hVideoOut);
     
-figure,imshow(rgb2gray(motionFieldImg)),title('Motion Field');                  
 displayEndOfDemoMessage(mfilename)
 
 

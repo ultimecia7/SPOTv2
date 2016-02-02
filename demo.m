@@ -4,7 +4,7 @@
     close all
     
     
-    movie_name = 'basketball.mov';
+    movie_name = 'pedestrain.mov';
         
     spot(movie_name);
     
